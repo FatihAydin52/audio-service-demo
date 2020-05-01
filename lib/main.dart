@@ -1,9 +1,9 @@
 import 'package:android_alarm_manager/android_alarm_manager.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:example/audio_player_task.dart';
+import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
-
 
 void shutDownAudioService() async {
   await AudioService.connect();
@@ -11,19 +11,35 @@ void shutDownAudioService() async {
     AudioService.stop();
   }
 }
+
 void _audioPlayerTaskEntryPoint() async {
   AudioServiceBackground.run(() => AudioPlayerTask());
 }
 
-
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
 
   AndroidAlarmManager.initialize();
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+
+    initAds();
+  }
+
+  initAds() async {
+    await FirebaseAdMob.instance.initialize(appId: FirebaseAdMob.testAppId);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -96,46 +112,43 @@ class MainScreen extends StatelessWidget {
   }
 
   RaisedButton audioPlayerButton() => startButton(
-    'AudioPlayer',
+        'AudioPlayer',
         () {
-      AudioService.start(
-        backgroundTaskEntrypoint: _audioPlayerTaskEntryPoint,
-        androidNotificationChannelName: 'Audio Service Demo',
-        notificationColor: 0xFF2196f3,
-        androidNotificationIcon: 'mipmap/ic_launcher',
-        enableQueue: true,
+          AudioService.start(
+            backgroundTaskEntrypoint: _audioPlayerTaskEntryPoint,
+            androidNotificationChannelName: 'Audio Service Demo',
+            notificationColor: 0xFF2196f3,
+            androidNotificationIcon: 'mipmap/ic_launcher',
+            enableQueue: true,
+          );
+
+          AndroidAlarmManager.oneShot(Duration(seconds: 30), 0, shutDownAudioService);
+          print("Audio Service will shut down after 30 seconds.");
+        },
       );
 
-      AndroidAlarmManager.oneShot(Duration(seconds: 30), 0, shutDownAudioService);
-      print("Audio Service will shut down after 30 seconds.");
-    },
-  );
-
-
-  RaisedButton startButton(String label, VoidCallback onPressed) =>
-      RaisedButton(
+  RaisedButton startButton(String label, VoidCallback onPressed) => RaisedButton(
         child: Text(label),
         onPressed: onPressed,
       );
 
   IconButton playButton() => IconButton(
-    icon: Icon(Icons.play_arrow),
-    iconSize: 64.0,
-    onPressed: AudioService.play,
-  );
+        icon: Icon(Icons.play_arrow),
+        iconSize: 64.0,
+        onPressed: AudioService.play,
+      );
 
   IconButton pauseButton() => IconButton(
-    icon: Icon(Icons.pause),
-    iconSize: 64.0,
-    onPressed: AudioService.pause,
-  );
+        icon: Icon(Icons.pause),
+        iconSize: 64.0,
+        onPressed: AudioService.pause,
+      );
 
   IconButton stopButton() => IconButton(
-    icon: Icon(Icons.stop),
-    iconSize: 64.0,
-    onPressed: AudioService.stop,
-  );
-
+        icon: Icon(Icons.stop),
+        iconSize: 64.0,
+        onPressed: AudioService.stop,
+      );
 
   Stream<ScreenState> get _screenStateStream => Rx.combineLatest3<List<MediaItem>, MediaItem, PlaybackState, ScreenState>(
       AudioService.queueStream, AudioService.currentMediaItemStream, AudioService.playbackStateStream, (queue, mediaItem, playbackState) => ScreenState(queue, mediaItem, playbackState));
