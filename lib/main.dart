@@ -19,7 +19,7 @@ void _audioPlayerTaskEntryPoint() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
-
+  await FirebaseAdMob.instance.initialize(appId: FirebaseAdMob.testAppId);
   AndroidAlarmManager.initialize();
 }
 
@@ -32,13 +32,9 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-
-    initAds();
   }
 
-  initAds() async {
-    await FirebaseAdMob.instance.initialize(appId: FirebaseAdMob.testAppId);
-  }
+
 
   @override
   Widget build(BuildContext context) {
